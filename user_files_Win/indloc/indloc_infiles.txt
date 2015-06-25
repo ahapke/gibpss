@@ -1,0 +1,4 @@
+ind01	C:\data\NGS\fdm\run3\ATTGA_R1.fq.gz
+ind02	C:\data\NGS\fdm\run3\ACTA_R1.fq.gz
+ind03	C:\data\NGS\fdm\run3\AGGC_R1.fq.gz
+ind04	C:\data\NGS\fdm\run3\GAATTCA_R1.fq.gz

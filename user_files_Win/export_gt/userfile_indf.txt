@@ -1,0 +1,2 @@
+ind01	group1
+ind02	group2
