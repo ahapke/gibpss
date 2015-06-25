@@ -1,0 +1,3 @@
+ind01	Ana7
+ind02	Ber45
+ind03	Ana7

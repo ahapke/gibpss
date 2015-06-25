@@ -1,0 +1,8 @@
+/home/username/data/NGS/run3/669_ATCACG_L004_R1_001.fastq.gz
+/home/username/data/NGS/run3/669_ATCACG_L004_R1_002.fastq.gz
+/home/username/data/NGS/run3/669_ATCACG_L004_R1_003.fastq.gz
+/home/username/data/NGS/run3/669_ATCACG_L004_R1_004.fastq.gz
+/home/username/data/NGS/run3/669_ATCACG_L004_R2_001.fastq.gz
+/home/username/data/NGS/run3/669_ATCACG_L004_R2_002.fastq.gz
+/home/username/data/NGS/run3/669_ATCACG_L004_R2_003.fastq.gz
+/home/username/data/NGS/run3/669_ATCACG_L004_R2_004.fastq.gz

@@ -1,0 +1,96 @@
+#S: String
+#B: Boolean: (1 for True and 0 for False)
+#I: Integer
+#D: Decimal
+
+#MAIN SETTINGS
+
+report_filename  report.txt     #S: name of report file with analysis result counts
+fastq_listname  fastq_list_paired.txt  #S: name/path of text-file with fastq-infilenames
+                                #with single reads: one filename per line
+                                #with paired reads: each line: forward-filename whitespace reverse-filename
+P       1  #B: paired reads in paired infiles
+save_f  1  #B: save forward reads
+save_r  0  #B: save reverse reads
+save_d  0  #B: save discarded reads
+adsf    0  #B: save adapter containing sequences to separate outfiles
+r1r2sf  0  #B: save paired reads (forward-,reverse-) to separate outfiles
+           #   in any case, if one of the two reads is discarded, the other one is saved to *_sg_*
+z       1  #B: 1: write gzip compressed fastq outfiles, 0: write plain text fastq outfiles
+max_p   4  #I: maximum number of processes in parallel, must be 1 or greater
+ch_h    1  #B: change Illumina header of all sequences to simpler format (required for pair_finder)
+
+#QUALITY CHECK BY SLIDING WINDOW ANALYSIS
+
+f_q  1  #B: f-reads: do sliding window quality check
+r_q  1  #B: r-reads: do sliding window quality check
+po  33  #I: phredscore-offset (here: 33 for Sanger)
+pt  10  #I: average phredscore threshold in sliding window
+wl  10  #I: window length for sliding window
+
+#TRUNCATION OF SEQUENCES
+
+f_trf 90  #I: f-reads: truncate first to specified length, 0: don't truncate first
+r_trf 90  #I: r-reads: truncate first to specified length, 0: don't truncate first
+f_tr  70  #I: f-reads: truncate to specified length, 0: Don't truncate
+r_tr  70  #I: r-reads: truncate to specified length, 0: Don't truncate
+
+#RESTRICTION SITES: CHECK AND REPAIR:
+#in f-reads without barcode
+#in f-reads during barcode demultiplexing
+#in r-reads
+#internal restriction sites in f- and r-reads
+
+f_restr_site1     GATCC   #S: f-reads: restriction-site at beginning of sequence or after barcode
+r_restr_site1     GATCC   #S: r-reads: restriction-site at beginning of sequence
+f_r1_c            0       #B: f-reads without barcode: check if sequence begins with f_restr_site_1
+r_r1_c            1       #B: r-reads: check if sequence begins with r_restr_site_1
+f_r1_rep          0       #B: f-reads without barcode: repair restriction site at beginning of sequence when necessary
+r_r1_rep          1       #B: r-reads: repair restriction site at beginning of sequence when necessary
+r_reppos          1       #I: f- and r-reads: number of positions in restr_site1 that may be repaired
+f_cl_r            1       #B: f-reads: clip restriction site at beginning of sequence
+r_cl_r            1       #B: r-reads: clip restriction site at beginning of sequence
+f_rint_c          1       #B: f-reads: check for internal restriction site
+f_restr_site_int  GGATCC  #S: f-reads: internal restriction site
+r_rint_c          1       #B: r-reads: check for internal restriction site
+r_restr_site_int  GGATCC  #S: r-reads: internal restriction site
+
+#BARCODE DEMULTIPLEXING
+#f-read must begin with barcode
+
+f_bc              1       #B: f-reads begin with a barcode
+barcode_listname  barcodes.txt  #S: name/path of text-file containing the barcodes, one per line
+f_bc_rrep         1       #B: repair restriction site following the barcode when necessary
+f_bcrep_r         1       #B: repair barcode if necessary
+f_bcrep_rrep      1       #B: repair barcode and following restriction site when necessary
+bc_reppos         1       #I: number of positions in barcode that may be repaired
+f_cl_bc           1       #B: clip barcode after succesful identification of barcode+restriction site
+compbcl           1       #B: compensate for different barcode lengths by truncation of sequences with short barcodes
+lonbc             8       #I: length of longest barcode
+
+#ADAPTER SEARCH
+
+admis     0.1  #D: fraction of mismatch allowed when searching for adapter
+               #corresponding number of mismatch positions is rounded down to nearest integer
+               #e.g. 0.1 in 19 positions evaluates to 1 mismatch allowed
+f_ad_c    1    #B: f-reads: check for adapter
+f_adseq  GATCAGATCGGAAGAGCACACGTCTGAACTCCAGTCA  #S: f-reads: adapter sequence
+r_sad_c   0    #B: r-reads: check for single adapter sequence
+r_sadseq       #S: r-reads: single adapter sequence
+r_bcad_c  1    #B: r-reads: check for one of several barcode adapters
+bcad_listname  bc_adapters.txt  #S: name of text-file containing all barcode adapters:
+                                #each line: barcode in f-read whitespace barcode-adapter in r-read
+
+#CONSTRUCTION OF RC-DUPLICATES FROM PAIRED READS WITHOUT ADAPTER
+
+catsrc  1  #B: append reverse complement of r-read to f-read
+           #   replace r-read with reverse complement of new elongated f-read
+
+#CONSTRUCTION OF RC-DUPLICATES FROM PAIRED READS WITH ADAPTER
+
+cropia   1  #B: crop insert of adapter containing sequences
+f_ao    -1  #I: f-reads: offset for adapter clipping
+r_ao    -1  #I: r-reads: offset for adapter clipping
+ilamin  32  #I: minimum length of (cropped) insert of adapter containing seqs
+            #   if cropped insert would be shorter, read or pair of reads is discarded
+rcdupa   1  #B: replace r-read with reverse complement of f-read or vice-versa
