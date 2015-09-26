@@ -1,6 +1,6 @@
 # GIbPSs
 
-Genotype individuals based on Paired Sequences or single reads
+Genotype Individuals based on Paired Sequences or single reads
 
 ## Introduction
 GIbPSs is a package for the analysis of GBS (genotyping-by-sequencing) and RAD (restriction site associated DNA) sequence data. It handles paired-end or single reads from protocols such as GBS, two-enzyme GBS, and ddRAD. It can also analyze forward reads from RAD libraries. Its main purpose is genotyping of individuals from diploid organisms without a reference genome for population genetic and phylogeographic analyses. GIbPSs is written in Perl 5 and runs under Linux and Windows. I have developed it for the analysis of sequence data from "classical" GBS libraries (Elshire et al. 2011). This technique uses a single restriction enzyme. Reads of a locus originate from both strands and display full, partial, or no overlap. This can lead to duplicate locus identification when a reference genome is not available. GIbPSs solves this problem through reverse complement clustering of paired sequence reads. GIbPSs can handle sequences of different lengths and analyze short restriction fragments in adapter-containing sequences. GIbPSs employs a rapid genotyping strategy that eliminates errors due to indel variation without the need for time-consuming multiple alignments. It identifies loci with indel variation with the aid of USEARCH (Edgar, R. C. 2010) and excludes them from the final dataset. GIbPSs stores genotype data in a database that offers multiple options for data exploration, quality filtering, data selection, and export. It produces various data formats for population genetic and phylogenetic programs. Examples are STRUCTURE, Genepop, Arlequin, and files in FASTA, Nexus, and Phylip format that contain DNA characters, integers, or binary data. GIbPSs can export one SNP per locus, encode alleles based on all SNPs of each locus or export full allele sequences.
@@ -29,7 +29,7 @@ The downloadable archive contains a copy of the GNU General Public License versi
 ## Citation
 A manuscript about GIbPSs is in preparation. For now, please cite GIbPSs as follows:
 
-Hapke, A. (2015) GIbPSs: GIbPSs version 1.0.0. Available from https://github.com/ahapke/gibpss.
+Hapke, A. (2015) GIbPSs: GIbPSs version 1.0.1. Available from https://github.com/ahapke/gibpss.
 
 ## Contact
 Andreas Hapke, Johannes Gutenberg University Mainz, Institute of Anthropology, Anselm-Franz-von-Benzel-Weg 7, D-55099 Mainz, Germany, ahapke2@gmail.com.
