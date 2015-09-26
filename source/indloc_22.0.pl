@@ -1,5 +1,5 @@
 #!/usr/bin/perl -w
-#indloc version 22.0 Copyright 2015 Andreas Hapke
+#indloc version 23.0 Copyright 2015 Andreas Hapke
 #This file is part of GIbPSs Copyright 2015 Andreas Hapke
 #
 #GIbPSs is free software: you can redistribute it and/or modify
@@ -60,7 +60,7 @@ my ($end_time) = 0;
 my ($run_s) = 0;
 
 #Copyright message to screen
-print "indloc version 22.0 Copyright 2015 Andreas Hapke\n",
+print "indloc version 23.0 Copyright 2015 Andreas Hapke\n",
 "This program is part of GIbPSs Copyright 2015 Andreas Hapke\n",
 "GIbPSs comes with ABSOLUTELY NO WARRANTY. GIbPSs is free software,\n",
 "and you are welcome to redistribute it under certain conditions.\n",
@@ -82,6 +82,7 @@ i => 'indloc_infiles.txt',#name of infile-list
 z => '0',#1: write svars.txt and reads.txt as gzip compressed files
 d => 'none',#name of distance-file
 D => '4',#hapdep
+mdl => '1',#minimum depth of a locus, loci with smaller depth are discarded (lost)
 P => '1',#max_p
 r => '0',#1: fastq-infiles contain only forward reads of rc-duplicates, build reverse reads as reverse complement
 M => 'f',#f: frequency threshold method, b: binomial likelihood ratio method
@@ -94,6 +95,7 @@ i => 'indloc_infiles.txt',#name of infile-list
 z => '0',#1: write svars.txt and reads.txt as gzip compressed files
 d => 'none',#name of distance-file
 D => '4',#hapdep
+mdl => '1',#minimum depth of a locus, loci with smaller depth are discarded (lost)
 P => '1',#max_p
 r => '0',#1: fastq-infiles contain only forward reads of rc-duplicates, build reverse reads as reverse complement
 M => 'f',#f: frequency threshold method, b: binomial likelihood ratio method
@@ -116,6 +118,7 @@ my $hapdist = 4;#max distance between neighboring haplotypes in a locus
 my $rarehapdist = 6;#max dist between a rare haplotype and at least one good haplotype
 					#in a locus to allow for assignment of the rare haplotype to the locus
 my $hapdep = 4;#min read-depth for a haplotype
+my $mdl = 1;#minimum read depth of a locus, loci with smaller depth are discarded (lost)
 my $build_rc = 0;#1: build reverse complement of each read in infile as read 2
 my $method = 'f';#Method: f: frequency threshold, b: binomial likelihood ratio
 my $min_cf = 0.2;#minimum character frequency in an individual locus alignment
@@ -162,6 +165,10 @@ unless(($user_settings{'z'} eq '0') or ($user_settings{'z'} eq '1')) {
 unless(($user_settings{'D'} =~ /^\d+$/) and ($user_settings{'D'} > 0)) {
 	$user_settings{'D'} = $defaults{'D'};
 }
+#mdl: positive integer
+unless(($user_settings{'mdl'} =~ /^\d+$/) and ($user_settings{'mdl'} > 0)) {
+	$user_settings{'mdl'} = $defaults{'mdl'};
+}
 #max_p: positive integer
 unless(($user_settings{'P'} =~ /^\d+$/) and ($user_settings{'P'} > 0)) {
 	$user_settings{'P'} = $defaults{'P'};
@@ -197,6 +204,7 @@ and ($user_settings{'e'} >= 0) and ($user_settings{'e'} < 1)) {
 $infilelistname = $user_settings{'i'};
 $z = $user_settings{'z'};
 $hapdep = $user_settings{'D'};
+$mdl = $user_settings{'mdl'};
 $max_p = $user_settings{'P'};
 $build_rc = $user_settings{'r'};
 $method = $user_settings{'M'};
@@ -220,6 +228,7 @@ print OUTREP
 "z $user_settings{'z'}\n",
 "d $user_settings{'d'}\n",
 "D $user_settings{'D'}\n",
+"mdl $user_settings{'mdl'}\n",
 "P $user_settings{'P'}\n",
 "r $user_settings{'r'}\n",
 "M $user_settings{'M'}\n";
@@ -405,7 +414,7 @@ for $ind (@inds_inputorder) {
 	$pm1->start and next;
 	$fqfile = $ind_infile{$ind};#get fastq-filename for this ind
 	#call sub ind to analyze infile of this ind and print output for this ind
-	ind($ind,$fqfile,$build_rc,$hapdep,\%dist_set,$method,$min_cf,$min_af,$binerr,$indreportsuffix,$z);
+	ind($ind,$fqfile,$build_rc,$hapdep,$mdl,\%dist_set,$method,$min_cf,$min_af,$binerr,$indreportsuffix,$z);
 	$pm1->finish;
 }
 $pm1->wait_all_children;
@@ -490,6 +499,7 @@ exit;
 			#build reverse read with same header ending with _2 as reverse complement
 			#0: Not so
 #$hapdep: (minimum read-depth for a "good" haplotype)
+#mdl: minimum read depth of a locus, loci with smaller depth are discarded (lost)
 #ref to %dist_set: {sl}=(hapdist,rarehapdist);
 		#hapdist: max dist between two neighboring "good" haplotypes in a locus
 		#rarehapdist: max dist between a rare haplotype and at least one good haplotype
@@ -502,7 +512,7 @@ exit;
 #$z: 1: write svars.txt and reads.txt as gzip compressed files svars.txt.gz reads.txt.gz; 0: don't
 sub ind {
 	#declare and initialize: _r means a reference
-	my($ind,$fqfile,$build_rc,$hapdep,$dist_set_r,$method,$min_cf,$min_af,$binerr,$indreportsuffix,$z) = @_;
+	my($ind,$fqfile,$build_rc,$hapdep,$mdl,$dist_set_r,$method,$min_cf,$min_af,$binerr,$indreportsuffix,$z) = @_;
 	#own variables
 	my $indreportname = '';#name of report file for current individual
 	my $fqfileh = '';#handle for fastq infile
@@ -599,7 +609,7 @@ sub ind {
 		#call sub snphapcal1 to call SNPs and haplotypes and produce outfiles for this ind
 		#sub snphapcal1 will delete haplotypes from %l_loc_cat_h_f once it doesn't need them any more
 		#$succes will contain failure message or "analysis completed"
-		$success = snphapcal1(\%l_loc_cat_h_f,$ind,$min_cf,$min_af,$fqfile,$build_rc,$z);
+		$success = snphapcal1(\%l_loc_cat_h_f,$ind,$mdl,$min_cf,$min_af,$fqfile,$build_rc,$z);
 		print INDREPFILE "$success";#print failure message or "analysis completed to report file
 		close INDREPFILE;#close report file and return
 	}
@@ -607,7 +617,7 @@ sub ind {
 		#call sub snphapcalbin to call SNPs and haplotypes and produce outfiles for this ind
 		#sub snphapcalbin will delete haplotypes from %l_loc_cat_h_f once it doesn't need them any more
 		#$succes will contain failure message or "analysis completed"
-		$success = snphapcalbin(\%l_loc_cat_h_f,$ind,$binerr,$fqfile,$build_rc,$z);
+		$success = snphapcalbin(\%l_loc_cat_h_f,$ind,$mdl,$binerr,$fqfile,$build_rc,$z);
 		print INDREPFILE "$success";#print failure message or "analysis completed to report file
 		close INDREPFILE;#close report file and return
 	}
@@ -1254,6 +1264,7 @@ sub rare_match_loc {
 #expects:
 #ref to %l_loc_cat_h_f: {seqlength}{locusID}{cat}{haplotype}= haplotype-depth
 #$ind: ID of current individual for building of outfilestem
+#$mdl: minimum depth of a locus, loci with smaller depth are discarded
 #$min_cf: minimum character frequency in an individual locus alignment
 #$min_af: minimum allele frequency in an individual locus alignment
 #$fqfile: name of fastq infile for current individual
@@ -1264,7 +1275,7 @@ sub rare_match_loc {
 #$z: 1: write svars.txt and reads.txt as gzip compressed files svars.txt.gz reads.txt.gz; 0: don't
 sub snphapcal1 {
 	#declare and initialize, _r means a reference
-	my ($l_loc_cat_h_f_r,$ind,$min_cf,$min_af,$fqfile,$build_rc,$z) = @_;
+	my ($l_loc_cat_h_f_r,$ind,$mdl,$min_cf,$min_af,$fqfile,$build_rc,$z) = @_;
 	my $sl = 0;#seqlength
 	my $locID = 0;#locus ID
 	my $cat = '';#"good" or "rare"
@@ -1418,51 +1429,61 @@ sub snphapcal1 {
 			for ($i = 0; $i < @haprdinarr; ++$i) {
 				$locdep += $haprdinarr[$i];
 			}
-			#if there is only one haplotype:
-			if (@hapseqinarr == 1) {
-				$hapseq = $hapseqinarr[0]; #get the sequence
-				$haprd = $haprdinarr[0];#get its depth
-				if ($hapseq =~ /N/) {#if the sequence contains N
-					$loc_cat = 'lost';#record that the locus is lost
-					$loclostall = 1;#one allele was lost from the locus
-					$dischaplos[0] = 0;#add hapNo to dischaplos
-				} else {#no N: locus valid
-					#create one allele and count it
-					@{$alleles{$next_allele_ID}} = ($hapseq,$haprd,0);
-					$n_alleles = 1;
-					++$next_allele_ID;#increment for next allele in next locus
-				}			
-			}
-			#if there is more than 1 haplotype
-			if (@hapseqinarr > 1) {
-				#build @seqmatin:d1: rows, d2: cols
-				for ($i = 0; $i < @hapseqinarr; ++$i) {
-					@temparr1 = split('', $hapseqinarr[$i]);
-					push @seqmatin, [@temparr1];
+			if ($locdep < $mdl){#if depth of locus too small: discard
+				$loc_cat = 'lost';#record that the locus is lost
+				$n_alleles = 0;
+				$loclostall = 1;
+				$locpotlostmoreall = 1;
+				for ($hapNo = 0; $hapNo < @hapIDinarr; ++$hapNo) {
+					push @dischaplos, $hapNo;
 				}
-				#call sub varpos to get position numbers of variable positions into @varposin
-				@varposin = varpos(\@seqmatin);
-				#call sub errbase1 to correct sequencing errors
-				#corrected sequences into: @seqmatcorr
-				@seqmatcorr = errbase1(\@seqmatin,\@varposin,\@haprdinarr,$locdep,$min_cf);
-				#call sub hapgroups to build haplotype-groups into %hapgroups
-				#determine their depths into %hapgroup_dep
-				#collect numbers of discarded haplos in @dischaplos
-				#record how many alleles got lost in that procedure($loclostall)
-				#and if the number of lost alleles could be greater($locpotlostmoreall == 1)
-				#haplotype groups will later be collapsed into alleles
-				hapgroups(\@seqmatcorr,\%hapgroups,\%hapgroup_dep,
-				\@dischaplos,$sl,\@haprdinarr,\$loclostall,\$locpotlostmoreall);
-				#if there is no hapgroup:
-				if (keys %hapgroups == 0) {
-					$loc_cat = 'lost';#record that the locus is lost
-				} else {
-					#call sub build_alleles to populate %alleles and determine $n_alleles
-					build_alleles(\@seqmatcorr,\@varposin,\%hapgroups,\%hapgroup_dep,
-					$locdep,\%alleles,\$n_alleles,\@dischaplos,\$loclostall,\$next_allele_ID,$min_af);
-					#if there is no allele after building alleles
-					if (keys %alleles == 0) {
+			} else {#depth of locus acceptable
+				#if there is only one haplotype:
+				if (@hapseqinarr == 1) {
+					$hapseq = $hapseqinarr[0]; #get the sequence
+					$haprd = $haprdinarr[0];#get its depth
+					if ($hapseq =~ /N/) {#if the sequence contains N
 						$loc_cat = 'lost';#record that the locus is lost
+						$loclostall = 1;#one allele was lost from the locus
+						$dischaplos[0] = 0;#add hapNo to dischaplos
+					} else {#no N: locus valid
+						#create one allele and count it
+						@{$alleles{$next_allele_ID}} = ($hapseq,$haprd,0);
+						$n_alleles = 1;
+						++$next_allele_ID;#increment for next allele in next locus
+					}			
+				}
+				#if there is more than 1 haplotype
+				if (@hapseqinarr > 1) {
+					#build @seqmatin:d1: rows, d2: cols
+					for ($i = 0; $i < @hapseqinarr; ++$i) {
+						@temparr1 = split('', $hapseqinarr[$i]);
+						push @seqmatin, [@temparr1];
+					}
+					#call sub varpos to get position numbers of variable positions into @varposin
+					@varposin = varpos(\@seqmatin);
+					#call sub errbase1 to correct sequencing errors
+					#corrected sequences into: @seqmatcorr
+					@seqmatcorr = errbase1(\@seqmatin,\@varposin,\@haprdinarr,$locdep,$min_cf);
+					#call sub hapgroups to build haplotype-groups into %hapgroups
+					#determine their depths into %hapgroup_dep
+					#collect numbers of discarded haplos in @dischaplos
+					#record how many alleles got lost in that procedure($loclostall)
+					#and if the number of lost alleles could be greater($locpotlostmoreall == 1)
+					#haplotype groups will later be collapsed into alleles
+					hapgroups(\@seqmatcorr,\%hapgroups,\%hapgroup_dep,
+					\@dischaplos,$sl,\@haprdinarr,\$loclostall,\$locpotlostmoreall);
+					#if there is no hapgroup:
+					if (keys %hapgroups == 0) {
+						$loc_cat = 'lost';#record that the locus is lost
+					} else {
+						#call sub build_alleles to populate %alleles and determine $n_alleles
+						build_alleles(\@seqmatcorr,\@varposin,\%hapgroups,\%hapgroup_dep,
+						$locdep,\%alleles,\$n_alleles,\@dischaplos,\$loclostall,\$next_allele_ID,$min_af);
+						#if there is no allele after building alleles
+						if (keys %alleles == 0) {
+							$loc_cat = 'lost';#record that the locus is lost
+						}
 					}
 				}
 			}
@@ -1593,6 +1614,7 @@ sub snphapcal1 {
 #expects:
 #ref to %l_loc_cat_h_f: {seqlength}{locusID}{cat}{haplotype}= haplotype-depth
 #$ind: ID of current individual for building of outfilestem
+#$mdl: minimum depth of a locus, loci with smaller depth are discarded
 #$binerr: sequencing error rate
 #$fqfile: name of fastq infile for current individual
 #$build_rc: 1: fastq-infile contains only forward reads of rc-duplicates
@@ -1602,7 +1624,7 @@ sub snphapcal1 {
 #$z: 1: write svars.txt and reads.txt as gzip compressed files svars.txt.gz reads.txt.gz; 0: don't
 sub snphapcalbin {
 	#declare and initialize, _r means a reference
-	my ($l_loc_cat_h_f_r,$ind,$binerr,$fqfile,$build_rc,$z) = @_;
+	my ($l_loc_cat_h_f_r,$ind,$mdl,$binerr,$fqfile,$build_rc,$z) = @_;
 	my $sl = 0;#seqlength
 	my $locID = 0;#locus ID
 	my $cat = '';#"good" or "rare"
@@ -1759,51 +1781,61 @@ sub snphapcalbin {
 			for ($i = 0; $i < @haprdinarr; ++$i) {
 				$locdep += $haprdinarr[$i];
 			}
-			#if there is only one haplotype:
-			if (@hapseqinarr == 1) {
-				$hapseq = $hapseqinarr[0]; #get the sequence
-				$haprd = $haprdinarr[0];#get its depth
-				if ($hapseq =~ /N/) {#if the sequence contains N
-					$loc_cat = 'lost';#record that the locus is lost
-					$loclostall = 1;#one allele was lost from the locus
-					$dischaplos[0] = 0;#add hapNo to dischaplos
-				} else {#no N: locus valid
-					#create one allele and count it
-					@{$alleles{$next_allele_ID}} = ($hapseq,$haprd,0);
-					$n_alleles = 1;
-					++$next_allele_ID;#increment for next allele in next locus
-				}			
-			}
-			#if there is more than 1 haplotype
-			if (@hapseqinarr > 1) {
-				#build @seqmatin:d1: rows, d2: cols
-				for ($i = 0; $i < @hapseqinarr; ++$i) {
-					@temparr1 = split('', $hapseqinarr[$i]);
-					push @seqmatin, [@temparr1];
+			if ($locdep < $mdl){#if depth of locus too small: discard
+				$loc_cat = 'lost';#record that the locus is lost
+				$n_alleles = 0;
+				$loclostall = 1;
+				$locpotlostmoreall = 1;
+				for ($hapNo = 0; $hapNo < @hapIDinarr; ++$hapNo) {
+					push @dischaplos, $hapNo;
 				}
-				#call sub varpos to get position numbers of variable positions into @varposin
-				@varposin = varpos(\@seqmatin);
-				#call sub errbasebin to call SNPs and correct sequencing errors
-				#corrected sequences into: @seqmatcorr
-				@seqmatcorr = errbasebin(\@seqmatin,\@varposin,\@haprdinarr,$binerr,\%majormin);
-				#call sub hapgroups to build haplotype-groups into %hapgroups
-				#determine their depths into %hapgroup_dep
-				#collect numbers of discarded haplos in @dischaplos
-				#record how many alleles got lost in that procedure($loclostall)
-				#and if the number of lost alleles could be greater($locpotlostmoreall == 1)
-				#haplotype groups will later be collapsed into alleles
-				hapgroupsbin(\@seqmatcorr,\%hapgroups,\%hapgroup_dep,
-				\@dischaplos,$sl,\@haprdinarr,\$loclostall,\$locpotlostmoreall);
-				#if there is no hapgroup:
-				if (keys %hapgroups == 0) {
-					$loc_cat = 'lost';#record that the locus is lost
-				} else {
-					#call sub build_alleles_bin to populate %alleles and determine $n_alleles
-					build_alleles_bin(\@seqmatcorr,\@varposin,\%hapgroups,\%hapgroup_dep,
-					\%alleles,\$n_alleles,\@dischaplos,\$loclostall,\$next_allele_ID);
-					#if there is no allele after building alleles
-					if (keys %alleles == 0) {
+			} else {#depth of locus acceptable
+				#if there is only one haplotype:
+				if (@hapseqinarr == 1) {
+					$hapseq = $hapseqinarr[0]; #get the sequence
+					$haprd = $haprdinarr[0];#get its depth
+					if ($hapseq =~ /N/) {#if the sequence contains N
 						$loc_cat = 'lost';#record that the locus is lost
+						$loclostall = 1;#one allele was lost from the locus
+						$dischaplos[0] = 0;#add hapNo to dischaplos
+					} else {#no N: locus valid
+						#create one allele and count it
+						@{$alleles{$next_allele_ID}} = ($hapseq,$haprd,0);
+						$n_alleles = 1;
+						++$next_allele_ID;#increment for next allele in next locus
+					}			
+				}
+				#if there is more than 1 haplotype
+				if (@hapseqinarr > 1) {
+					#build @seqmatin:d1: rows, d2: cols
+					for ($i = 0; $i < @hapseqinarr; ++$i) {
+						@temparr1 = split('', $hapseqinarr[$i]);
+						push @seqmatin, [@temparr1];
+					}
+					#call sub varpos to get position numbers of variable positions into @varposin
+					@varposin = varpos(\@seqmatin);
+					#call sub errbasebin to call SNPs and correct sequencing errors
+					#corrected sequences into: @seqmatcorr
+					@seqmatcorr = errbasebin(\@seqmatin,\@varposin,\@haprdinarr,$binerr,\%majormin);
+					#call sub hapgroups to build haplotype-groups into %hapgroups
+					#determine their depths into %hapgroup_dep
+					#collect numbers of discarded haplos in @dischaplos
+					#record how many alleles got lost in that procedure($loclostall)
+					#and if the number of lost alleles could be greater($locpotlostmoreall == 1)
+					#haplotype groups will later be collapsed into alleles
+					hapgroupsbin(\@seqmatcorr,\%hapgroups,\%hapgroup_dep,
+					\@dischaplos,$sl,\@haprdinarr,\$loclostall,\$locpotlostmoreall);
+					#if there is no hapgroup:
+					if (keys %hapgroups == 0) {
+						$loc_cat = 'lost';#record that the locus is lost
+					} else {
+						#call sub build_alleles_bin to populate %alleles and determine $n_alleles
+						build_alleles_bin(\@seqmatcorr,\@varposin,\%hapgroups,\%hapgroup_dep,
+						\%alleles,\$n_alleles,\@dischaplos,\$loclostall,\$next_allele_ID);
+						#if there is no allele after building alleles
+						if (keys %alleles == 0) {
+							$loc_cat = 'lost';#record that the locus is lost
+						}
 					}
 				}
 			}
