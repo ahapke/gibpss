@@ -1517,7 +1517,7 @@ sub snphapcal1 {
 				$hapNo = $dischaplos[$i];
 				$hapseq = $hapseqinarr[$hapNo];#get seq of haplotype
 				#store data about this haplotype in %hdat
-				$hdat{$hapseq} = "$locID\t$loc_cat\t$sl\t$allele_ID\t$hapIDinarr[$hapNo]\tdiscarded";
+				$hdat{$hapseq} = "$locID\t$loc_cat\t$sl\t0\t$hapIDinarr[$hapNo]\tdiscarded";
 			}
 			#set variables back
 			@catinarr = ();
@@ -1858,7 +1858,7 @@ sub snphapcalbin {
 				$hapNo = $dischaplos[$i];
 				$hapseq = $hapseqinarr[$hapNo];#get seq of haplotype
 				#store data about this haplotype in %hdat
-				$hdat{$hapseq} = "$locID\t$loc_cat\t$sl\t$allele_ID\t$hapIDinarr[$hapNo]\tdiscarded";
+				$hdat{$hapseq} = "$locID\t$loc_cat\t$sl\t0\t$hapIDinarr[$hapNo]\tdiscarded";
 			}
 			#set variables back
 			@catinarr = ();
