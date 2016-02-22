@@ -27,9 +27,8 @@ GIbPSs is distributed in the hope that it will be useful, but WITHOUT ANY WARRAN
 The downloadable archive contains a copy of the GNU General Public License version 3 in file License.txt. You can also obtain a copy at http://www.gnu.org/licenses/.
 
 ## Citation
-A manuscript about GIbPSs is in preparation. For now, please cite GIbPSs as follows:
-
-Hapke, A. (2015) GIbPSs: GIbPSs version 1.0.1. Available from https://github.com/ahapke/gibpss.
+Please cite GIbPSs as follows:
+Hapke A, Thiele D (2016) GIbPSs: a toolkit for fast and accurate analyses of genotyping-by-sequencing data without a reference genome. Molecular Ecology Resources. doi: 10.1111/1755-0998.12510
 
 ## Contact
 Andreas Hapke, Johannes Gutenberg University Mainz, Institute of Anthropology, Anselm-Franz-von-Benzel-Weg 7, D-55099 Mainz, Germany, ahapke2@gmail.com.
